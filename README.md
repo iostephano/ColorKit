@@ -1,56 +1,138 @@
-# ColorKit – Extract Dominant Colors from Images
+# ColorKit — Extractor de colores dominantes de una imagen
 
-**ColorKit** is an iOS application that allows users to **extract the most dominant colors** from any image in their photo library or camera, and view them in an intuitive palette with options for **HEX** or **RGB** formats.
+ColorKit es una app de iOS que toma una foto de la galería o la cámara y devuelve
+su paleta de colores dominantes, mostrándolos como círculos con su código en
+**HEX** o **RGB**. Existe como proyecto de portafolio para mostrar cómo abordo un
+problema de procesamiento de imagen en iOS con **UIKit y Core Graphics puros**:
+leer el buffer de píxeles a mano, agrupar colores parecidos y mantener el trabajo
+pesado fuera del hilo principal con `async/await`.
 
-## Key Features
+---
 
-- **Extract dominant colors**: Load an image from the gallery or camera and get a color palette automatically.
-- **Toggle between HEX and RGB formats**: Instantly switch how colors are displayed.
-- **Optimized color detection**: Prioritizes visible, distinct, and dominant tones.
-- **Reset functionality**: Clear the current image and palette with a simple tap on the "X" button.
-- **Beautiful dark-themed interface**: Clean and modern look, optimized for dark mode.
+## Tecnologías usadas
 
-## Installation
+- Swift 6 (con verificación estricta de concurrencia activada)
+- UIKit, construido por código (sin Storyboards salvo la pantalla de lanzamiento)
+- Core Graphics para leer el buffer de píxeles RGBA de la imagen
+- `async/await` + `Task.detached` para clusterizar los píxeles sin bloquear la UI
+- `@MainActor` aislando el decodificado de `UIImage`/`CGImage`
+- Swift Testing para las pruebas
+- Integración continua con GitHub Actions (compila y corre los tests en cada push/PR)
+- Cero dependencias externas
 
-Follow these steps to clone and run the project in your development environment:
+---
 
-1. Clone the repository:
-    
-    ```bash
-    git clone https://github.com/your_username/colorkit.git
-    ```
-    
-2. Open the project in **Xcode**.
-3. Make sure you are using **iOS 14+** and **Swift 5**.
-4. Run the app on a simulator or a real device.
+## Cómo está organizado el proyecto
 
-## Code Structure
+Es un repo pequeño, de un solo módulo:
 
-```bash
-📂 ColorKit
-├── 📂 ColorKit
-│   ├── AppDelegate.swift              # App setup
-│   ├── SceneDelegate.swift            # Window and root controller setup
-│   ├── ViewController.swift           # Main screen: image selection and palette display
-│   ├── ColorExtractor.swift           # Logic for extracting dominant colors
-│   ├── ColorPaletteView.swift         # Custom view for showing color circles and codes
-├── 📂 Assets.xcassets                  # App icons and assets
-├── 📂 LaunchScreen.storyboard          # Launch screen
-├── Info.plist                         # App configuration
+```
+ColorKit/
+├── ColorKit/
+│   ├── AppDelegate.swift / SceneDelegate.swift   # Arranque (ventana + root VC por código)
+│   ├── ViewController.swift                      # Pantalla única: elegir imagen y mostrar la paleta
+│   ├── ColorPaletteView.swift                    # UIView custom: dos filas de swatches + toggle HEX/RGB
+│   ├── ColorExtractor.swift                      # El núcleo: decodifica píxeles y clusteriza colores
+│   ├── RGBColor.swift                            # Triplete RGB de 8 bits, Hashable y Sendable
+│   └── UIColor+RGBColor.swift                    # Puente entre UIColor y RGBColor + formato HEX/RGB
+└── ColorKitTests/                                # Swift Testing sobre la lógica de ColorExtractor y RGBColor
 ```
 
-## Technologies Used
+`ColorExtractor` separa dos responsabilidades:
 
-- **Swift**
-- **UIKit** – For building the user interface and handling interactions
-- **UIImagePickerController** – For selecting images from gallery or camera
-- **Core Graphics** – For optimized pixel data analysis
-- **Auto Layout** – For responsive and adaptable UI design
+- **Decodificar** (`@MainActor`): dibuja la imagen en un contexto RGBA de 100x100 y
+  entrega sus bytes crudos. Toca `UIImage`/`CGImage`, que no son `Sendable`, así
+  que se queda en el hilo principal.
+- **Clusterizar** (función pura, sin UIKit): cuenta píxeles por "cubeta" de color,
+  se queda con el color real más frecuente de cada cubeta y filtra los que están
+  demasiado cerca entre sí. Opera sobre `[UInt8]`, así que corre en un
+  `Task.detached` y es directamente testeable.
 
-## Project Goal
+---
 
-ColorKit is designed for **artists, designers, and developers** who need a fast and easy way to **extract meaningful color palettes** from any image. It is ideal for branding, UI inspiration, and digital art workflows.
+## Cómo funciona / flujo principal
 
-## License
+1. El usuario toca el botón **+** y elige *Galería* o *Cámara*.
+2. `UIImagePickerController` devuelve una `UIImage`, que se muestra en pantalla.
+3. `ColorExtractor.dominantColors(from:maxColors:)` decodifica la imagen a un
+   buffer RGBA de 100x100 en el `@MainActor`.
+4. El buffer (ya `Sendable`) pasa a un `Task.detached` que:
+   - cuantiza cada píxel a cubetas de 16 niveles por canal y las cuenta,
+   - ordena las cubetas por frecuencia,
+   - recorre el ranking quedándose con colores mutuamente distintos (distancia
+     RGB normalizada mayor o igual a 0.10) hasta llenar la paleta.
+5. La paleta vuelve al `@MainActor` y `ColorPaletteView` pinta los swatches.
+6. El toggle cambia el texto de cada swatch entre `#RRGGBB` y `(r,g,b)` sin
+   recalcular nada.
 
-This project is licensed under the **MIT License**.
+---
+
+## Funcionalidades / qué demuestra
+
+- Extracción de hasta 14 colores dominantes de cualquier foto.
+- Lectura directa del buffer de píxeles con `CGContext` (sin librerías de color).
+- Agrupado de tonos casi idénticos + filtro de distancia para que la paleta no
+  repita variaciones del mismo color.
+- Cambio de formato HEX / RGB en vivo.
+- Botón de reinicio para limpiar imagen y paleta.
+- Interfaz por código pensada para modo oscuro.
+
+---
+
+## Pruebas
+
+`ColorKitTests` (Swift Testing) cubre la lógica central, que es pura y no necesita
+simulador para la mayoría de los casos:
+
+- **`ColorExtractor.cluster`**: imagen sólida da un color; orden por frecuencia;
+  respeto de `maxColors`; los píxeles transparentes (alpha < 128) se ignoran; los
+  tonos dentro de una misma cubeta colapsan en uno; el filtro de distancia
+  descarta colores casi iguales; entradas degeneradas (buffer vacío o a medias)
+  devuelven paleta vacía.
+- **`ColorExtractor.dominantColors`**: prueba de extremo a extremo que decodifica
+  una `UIImage` real y verifica el color resultante.
+- **`RGBColor`**: distancia (cero consigo mismo, 1 entre esquinas opuestas del
+  cubo, simétrica), formato HEX con padding, formato RGB y round-trip con `UIColor`.
+
+Correr los tests:
+
+```bash
+xcodebuild test \
+  -project ColorKit.xcodeproj \
+  -scheme ColorKit \
+  -destination 'platform=iOS Simulator,name=iPhone 16'
+```
+
+---
+
+## Cómo correr el proyecto
+
+1. Clona el repo:
+   ```bash
+   git clone https://github.com/iostephano/ColorKit.git
+   ```
+2. Abre `ColorKit.xcodeproj` con **Xcode 26** (ver `.xcode-version`).
+3. El objetivo mínimo es **iOS 26**. Elige un simulador de iPhone y ejecuta (Cmd-R).
+4. La opción *Cámara* solo funciona en un dispositivo físico; en el simulador usa
+   *Galería*.
+
+---
+
+## Cosas pendientes o limitadas (a propósito)
+
+- **Es una demo de una sola pantalla.** No hay persistencia: al cerrar la app se
+  pierde la paleta.
+- **El algoritmo es deliberadamente simple:** cuantización uniforme + conteo por
+  cubeta + filtro de distancia euclidiana en RGB. No usa espacios de color
+  perceptuales (Lab), ni k-means, ni mediana de cortes. Es suficiente para el
+  propósito del repo y fácil de leer y testear.
+- **La imagen se analiza a 100x100.** Prioriza velocidad sobre precisión en
+  imágenes con muchísimos matices.
+- **No hay exportar/copiar la paleta** ni compartir; el foco está en la extracción.
+- Los textos de la interfaz están en español; los identificadores del código, en inglés.
+
+---
+
+## Autor
+
+Stephano Portella

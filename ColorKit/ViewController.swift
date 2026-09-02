@@ -7,7 +7,7 @@
 
 import UIKit
 
-class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+final class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
 
     private let imageContainerView = UIView()
     private let roundedContainerView = UIView()
@@ -113,10 +113,17 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
 
     func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
         picker.dismiss(animated: true)
-        if let image = info[.originalImage] as? UIImage {
-            imageView.image = image
-            addImageButton.isHidden = true
-            let colors = ColorExtractor.extractDistinctColors(from: image, maxColors: 14)
+        guard let image = info[.originalImage] as? UIImage else { return }
+
+        imageView.image = image
+        addImageButton.isHidden = true
+        colorPaletteView.setColors([])
+
+        Task {
+            let colors = await ColorExtractor.dominantColors(
+                from: image,
+                maxColors: ColorPaletteView.capacity
+            )
             colorPaletteView.setColors(colors)
         }
     }

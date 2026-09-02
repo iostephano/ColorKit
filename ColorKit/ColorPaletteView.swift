@@ -7,7 +7,7 @@
 
 import UIKit
 
-class ColorPaletteView: UIView {
+final class ColorPaletteView: UIView {
 
     private let formatSwitch = UISwitch()
     private let formatLabel = UILabel()
@@ -135,7 +135,7 @@ class ColorPaletteView: UIView {
             if index < colors.count {
                 let color = colors[index]
                 circle.backgroundColor = color
-                label.text = isHexFormat ? color.toHex() : color.toRGB()
+                label.text = isHexFormat ? color.hexString : color.rgbString
             } else {
                 circle.backgroundColor = .lightGray
                 label.text = ""
@@ -147,37 +147,10 @@ class ColorPaletteView: UIView {
         isHexFormat.toggle()
     }
 
+    /// Number of swatches the palette can display (two rows of seven).
+    static let capacity = 14
+
     func setColors(_ newColors: [UIColor]) {
-        self.colors = Array(newColors.prefix(14))
-    }
-}
-
-extension UIColor {
-    func toHex() -> String {
-        var red: CGFloat = 0
-        var green: CGFloat = 0
-        var blue: CGFloat = 0
-        var alpha: CGFloat = 0
-        getRed(&red, green: &green, blue: &blue, alpha: &alpha)
-
-        let r = Int(red * 255)
-        let g = Int(green * 255)
-        let b = Int(blue * 255)
-
-        return String(format: "#%02X%02X%02X", r, g, b)
-    }
-
-    func toRGB() -> String {
-        var red: CGFloat = 0
-        var green: CGFloat = 0
-        var blue: CGFloat = 0
-        var alpha: CGFloat = 0
-        getRed(&red, green: &green, blue: &blue, alpha: &alpha)
-
-        let r = Int(red * 255)
-        let g = Int(green * 255)
-        let b = Int(blue * 255)
-
-        return "(\(r),\(g),\(b))"
+        self.colors = Array(newColors.prefix(Self.capacity))
     }
 }
