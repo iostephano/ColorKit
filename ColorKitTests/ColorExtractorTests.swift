@@ -2,6 +2,8 @@
 //  ColorExtractorTests.swift
 //  ColorKitTests
 //
+//  Created by Stephano Portella on 02/09/26.
+//
 
 import Testing
 import UIKit
@@ -9,7 +11,7 @@ import UIKit
 
 struct ColorExtractorTests {
 
-    /// Builds a tightly packed RGBA buffer from a list of `(color, count)` runs.
+    /// Arma un buffer RGBA empaquetado a partir de una lista de tramos `(color, cantidad)`.
     private func buffer(_ runs: [(RGBColor, Int)], alpha: UInt8 = 255) -> [UInt8] {
         var bytes: [UInt8] = []
         for (color, count) in runs {
@@ -57,7 +59,7 @@ struct ColorExtractorTests {
         let ghost = RGBColor(red: 0, green: 255, blue: 0)
 
         var bytes = buffer([(red, 10)])
-        bytes.append(contentsOf: buffer([(ghost, 40)], alpha: 10)) // below the 128 cutoff
+        bytes.append(contentsOf: buffer([(ghost, 40)], alpha: 10)) // por debajo del corte de 128
 
         let palette = ColorExtractor.cluster(rgbaBytes: bytes, maxColors: 5)
 
@@ -66,7 +68,7 @@ struct ColorExtractorTests {
 
     @Test("Near-identical shades collapse into one bucket")
     func quantizationMergesNeighbors() {
-        // Three shades within one 16-wide bucket on every channel.
+        // Tres tonos dentro de una misma cubeta de ancho 16 en cada canal.
         let bytes = buffer([
             (RGBColor(red: 240, green: 2, blue: 1), 20),
             (RGBColor(red: 246, green: 5, blue: 4), 20),
@@ -76,7 +78,7 @@ struct ColorExtractorTests {
         let palette = ColorExtractor.cluster(rgbaBytes: bytes, maxColors: 5, quantizationStep: 16)
 
         #expect(palette.count == 1)
-        // The palette reports the first real color seen in the bucket.
+        // La paleta reporta el primer color real visto en la cubeta.
         #expect(palette.first == RGBColor(red: 240, green: 2, blue: 1))
     }
 
@@ -86,8 +88,8 @@ struct ColorExtractorTests {
         let almostBright = RGBColor(red: 245, green: 0, blue: 0)
         let bytes = buffer([(bright, 50), (almostBright, 40)])
 
-        // step 1 disables quantization so both survive counting; the distinct
-        // filter is what must drop the second one.
+        // step 1 desactiva la cuantización, así los dos sobreviven al conteo;
+        // el filtro de distinción es lo que tiene que descartar el segundo.
         let palette = ColorExtractor.cluster(
             rgbaBytes: bytes,
             maxColors: 5,

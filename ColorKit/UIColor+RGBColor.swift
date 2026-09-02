@@ -2,14 +2,14 @@
 //  UIColor+RGBColor.swift
 //  ColorKit
 //
-//  Created by Stephano Portella on 26/04/25.
+//  Created by Stephano Portella on 02/09/26.
 //
 
 import UIKit
 
 extension UIColor {
-    /// The color as an 8-bit RGB triplet. Wide-gamut components that fall
-    /// outside `0...1` are clamped.
+    /// El color como triplete RGB de 8 bits. Los componentes de gama amplia que
+    /// caen fuera de `0...1` se recortan.
     var rgbColor: RGBColor {
         var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
         getRed(&red, green: &green, blue: &blue, alpha: &alpha)

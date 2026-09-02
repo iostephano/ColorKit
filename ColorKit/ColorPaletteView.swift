@@ -147,7 +147,7 @@ final class ColorPaletteView: UIView {
         isHexFormat.toggle()
     }
 
-    /// Number of swatches the palette can display (two rows of seven).
+    /// Cantidad de swatches que la paleta puede mostrar (dos filas de siete).
     static let capacity = 14
 
     func setColors(_ newColors: [UIColor]) {

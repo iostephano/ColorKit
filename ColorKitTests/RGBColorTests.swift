@@ -2,6 +2,8 @@
 //  RGBColorTests.swift
 //  ColorKitTests
 //
+//  Created by Stephano Portella on 02/09/26.
+//
 
 import Testing
 import UIKit

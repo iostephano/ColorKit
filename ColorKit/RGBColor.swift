@@ -2,15 +2,15 @@
 //  RGBColor.swift
 //  ColorKit
 //
-//  Created by Stephano Portella on 26/04/25.
+//  Created by Stephano Portella on 02/09/26.
 //
 
 import UIKit
 
-/// An 8-bit-per-channel RGB triplet.
+/// Triplete RGB de 8 bits por canal.
 ///
-/// Used instead of `UIColor` in the clustering path: it has dependable
-/// `Hashable` semantics for dictionary counting and is `Sendable`.
+/// Se usa en vez de `UIColor` en la clusterización: tiene semántica de
+/// `Hashable` confiable para contar en un diccionario y es `Sendable`.
 struct RGBColor: Hashable, Sendable {
     let red: UInt8
     let green: UInt8
@@ -18,7 +18,7 @@ struct RGBColor: Hashable, Sendable {
 }
 
 extension RGBColor {
-    /// Euclidean distance to `other`, normalized so black↔white is `1`.
+    /// Distancia euclidiana a `other`, normalizada para que negro↔blanco sea `1`.
     func distance(to other: RGBColor) -> Double {
         let dr = Double(red) - Double(other.red)
         let dg = Double(green) - Double(other.green)
