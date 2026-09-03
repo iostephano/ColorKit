@@ -7,6 +7,8 @@ problema de procesamiento de imagen en iOS con **UIKit y Core Graphics puros**:
 leer el buffer de píxeles a mano, agrupar colores parecidos y mantener el trabajo
 pesado fuera del hilo principal con `async/await`.
 
+<img width="1389" height="696" alt="ColorKit" src="https://github.com/user-attachments/assets/746561b4-2291-4d1b-b7c5-8a485c9d17ba" />
+
 ---
 
 ## Tecnologías usadas
